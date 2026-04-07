@@ -1,0 +1,1 @@
+"""Board commands module."""

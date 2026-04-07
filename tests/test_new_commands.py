@@ -48,7 +48,7 @@ class TestHelpRegistration:
 
     def test_issue_help_includes_new_commands(self):
         result = _invoke("issue", "--help")
-        for cmd in ("link", "unlink", "watch", "worklog", "remote-link"):
+        for cmd in ("view", "comments", "worklogs", "link", "unlink", "watch", "worklog", "remote-link"):
             assert cmd in result.output, f"{cmd} missing from issue --help"
 
     def test_board_help_includes_get_search(self):
@@ -541,5 +541,220 @@ class TestMe:
         client.get.side_effect = Exception("unauthorized")
         mock_gc.return_value = client
         result = _invoke("me")
+        assert "Error" in result.output
+        assert "unauthorized" in result.output
+
+
+# ---------------------------------------------------------------------------
+# issue view
+# ---------------------------------------------------------------------------
+
+class TestIssueView:
+
+    @patch("jira_cli.internal.cmd.issue.view.get_client")
+    def test_view_success(self, mock_gc):
+        client = _make_client()
+        client.get.return_value = {
+            "key": "TEST-123",
+            "fields": {
+                "summary": "Test issue summary",
+                "status": {"name": "In Progress"},
+                "priority": {"name": "High"},
+                "issuetype": {"id": "1", "name": "Bug"},
+                "assignee": {"displayName": "John Doe"},
+                "reporter": {"displayName": "Jane Smith"},
+                "labels": ["urgent", "backend"],
+                "components": [{"name": "API"}],
+                "fixVersions": [{"name": "v1.0"}],
+                "created": "2024-01-15T10:30:00.000+0000",
+                "updated": "2024-01-16T14:20:00.000+0000",
+                "description": "This is a test issue",
+            },
+        }
+        mock_gc.return_value = client
+        result = _invoke("issue", "view", "TEST-123")
+        assert result.exit_code == 0
+        assert "TEST-123" in result.output
+        assert "Test issue summary" in result.output
+        assert "In Progress" in result.output
+        assert "High" in result.output
+        assert "Bug" in result.output
+        assert "John Doe" in result.output
+
+    @patch("jira_cli.internal.cmd.issue.view.get_client")
+    def test_view_with_subtasks(self, mock_gc):
+        client = _make_client()
+        client.get.return_value = {
+            "key": "TEST-100",
+            "fields": {
+                "summary": "Parent issue",
+                "status": {"name": "Open"},
+                "priority": {"name": "Normal"},
+                "issuetype": {"id": "1", "name": "Task"},
+                "subtasks": [
+                    {"key": "TEST-101", "fields": {"summary": "Sub-task 1", "status": {"name": "Done"}}},
+                    {"key": "TEST-102", "fields": {"summary": "Sub-task 2", "status": {"name": "Open"}}},
+                ],
+            },
+        }
+        mock_gc.return_value = client
+        result = _invoke("issue", "view", "TEST-100")
+        assert result.exit_code == 0
+        assert "Sub-tasks:" in result.output
+        assert "TEST-101" in result.output
+        assert "TEST-102" in result.output
+
+    @patch("jira_cli.internal.cmd.issue.view.get_client")
+    def test_view_raw_json(self, mock_gc):
+        client = _make_client()
+        client.get.return_value = {
+            "key": "TEST-123",
+            "fields": {"summary": "Test", "status": {"name": "Open"}},
+        }
+        mock_gc.return_value = client
+        result = _invoke("issue", "view", "TEST-123", "--raw")
+        assert result.exit_code == 0
+        assert '"key": "TEST-123"' in result.output
+
+    @patch("jira_cli.internal.cmd.issue.view.get_client")
+    def test_view_api_error(self, mock_gc):
+        client = _make_client()
+        client.get.side_effect = Exception("not found")
+        mock_gc.return_value = client
+        result = _invoke("issue", "view", "TEST-999")
+        assert "Error" in result.output
+        assert "not found" in result.output
+
+
+# ---------------------------------------------------------------------------
+# issue comments
+# ---------------------------------------------------------------------------
+
+class TestIssueComments:
+
+    @patch("jira_cli.internal.cmd.issue.comments.get_client")
+    def test_comments_success(self, mock_gc):
+        client = _make_client()
+        client.get.return_value = {
+            "comments": [
+                {
+                    "id": "1",
+                    "body": "First comment",
+                    "author": {"displayName": "Alice"},
+                    "created": "2024-01-15T10:00:00.000+0000",
+                },
+                {
+                    "id": "2",
+                    "body": "Second comment",
+                    "author": {"displayName": "Bob"},
+                    "created": "2024-01-16T11:00:00.000+0000",
+                },
+            ],
+            "total": 2,
+        }
+        mock_gc.return_value = client
+        result = _invoke("issue", "comments", "TEST-123")
+        assert result.exit_code == 0
+        assert "Alice" in result.output
+        assert "Bob" in result.output
+        assert "First comment" in result.output
+        assert "Second comment" in result.output
+
+    @patch("jira_cli.internal.cmd.issue.comments.get_client")
+    def test_comments_empty(self, mock_gc):
+        client = _make_client()
+        client.get.return_value = {"comments": [], "total": 0}
+        mock_gc.return_value = client
+        result = _invoke("issue", "comments", "TEST-123")
+        assert result.exit_code == 0
+        assert "No comments" in result.output
+
+    @patch("jira_cli.internal.cmd.issue.comments.get_client")
+    def test_comments_api_error(self, mock_gc):
+        client = _make_client()
+        client.get.side_effect = Exception("server error")
+        mock_gc.return_value = client
+        result = _invoke("issue", "comments", "TEST-123")
+        assert "Error" in result.output
+        assert "server error" in result.output
+
+
+# ---------------------------------------------------------------------------
+# issue worklogs
+# ---------------------------------------------------------------------------
+
+class TestIssueWorklogs:
+
+    @patch("jira_cli.internal.cmd.issue.worklogs.get_client")
+    def test_worklogs_success(self, mock_gc):
+        client = _make_client()
+        client.get.return_value = {
+            "worklogs": [
+                {
+                    "id": "1",
+                    "timeSpent": "2h",
+                    "timeSpentSeconds": 7200,
+                    "author": {"displayName": "Alice"},
+                    "started": "2024-01-15T09:00:00.000+0000",
+                    "comment": "Code review",
+                },
+                {
+                    "id": "2",
+                    "timeSpent": "30m",
+                    "timeSpentSeconds": 1800,
+                    "author": {"displayName": "Bob"},
+                    "started": "2024-01-16T10:00:00.000+0000",
+                    "comment": "Bug fix",
+                },
+            ],
+            "total": 2,
+        }
+        mock_gc.return_value = client
+        result = _invoke("issue", "worklogs", "TEST-123")
+        assert result.exit_code == 0
+        assert "Alice" in result.output
+        assert "Bob" in result.output
+        assert "2h" in result.output
+        assert "30m" in result.output
+        assert "Code review" in result.output
+        assert "Bug fix" in result.output
+        assert "Total" in result.output
+
+    @patch("jira_cli.internal.cmd.issue.worklogs.get_client")
+    def test_worklogs_empty(self, mock_gc):
+        client = _make_client()
+        client.get.return_value = {"worklogs": [], "total": 0}
+        mock_gc.return_value = client
+        result = _invoke("issue", "worklogs", "TEST-123")
+        assert result.exit_code == 0
+        assert "No worklogs" in result.output
+
+    @patch("jira_cli.internal.cmd.issue.worklogs.get_client")
+    def test_worklogs_raw_json(self, mock_gc):
+        client = _make_client()
+        client.get.return_value = {
+            "worklogs": [
+                {
+                    "id": "1",
+                    "timeSpent": "1h",
+                    "timeSpentSeconds": 3600,
+                    "author": {"displayName": "Alice"},
+                    "comment": "",
+                },
+            ],
+            "total": 1,
+        }
+        mock_gc.return_value = client
+        result = _invoke("issue", "worklogs", "TEST-123", "--raw")
+        assert result.exit_code == 0
+        assert "TEST-123" not in result.output  # raw JSON output
+        assert '"id": "1"' in result.output
+
+    @patch("jira_cli.internal.cmd.issue.worklogs.get_client")
+    def test_worklogs_api_error(self, mock_gc):
+        client = _make_client()
+        client.get.side_effect = Exception("unauthorized")
+        mock_gc.return_value = client
+        result = _invoke("issue", "worklogs", "TEST-123")
         assert "Error" in result.output
         assert "unauthorized" in result.output

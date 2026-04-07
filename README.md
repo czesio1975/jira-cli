@@ -187,6 +187,64 @@ jira -p NTA issue list -a damianp -t Task -y Normal --paginate 0:10
 
 ---
 
+### issue view
+
+View details of a single issue.
+
+```bash
+jira issue view ISSUE_KEY [--raw]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--raw` | Output raw JSON |
+
+Displays: key, summary, type, status, priority, assignee, reporter, labels, components, fix versions, parent (for sub-tasks), created/updated dates, description, sub-tasks, and issue links.
+
+```bash
+jira -p NTA issue view NTA-123
+jira -p NTA issue view NTA-123 --raw
+```
+
+---
+
+### issue comments
+
+List all comments on an issue.
+
+```bash
+jira issue comments ISSUE_KEY
+```
+
+Displays author, date, and comment body for each comment.
+
+```bash
+jira -p NTA issue comments NTA-123
+```
+
+---
+
+### issue worklogs
+
+List all worklog entries on an issue.
+
+```bash
+jira issue worklogs ISSUE_KEY [--raw]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--raw` | Output raw JSON |
+
+Displays author, time spent, date, and comment for each worklog entry, plus total time.
+
+```bash
+jira -p NTA issue worklogs NTA-123
+jira -p NTA issue worklogs NTA-123 --raw
+```
+
+---
+
 ### issue create
 
 Create a new issue.

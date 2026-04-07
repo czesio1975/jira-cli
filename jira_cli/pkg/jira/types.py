@@ -257,3 +257,48 @@ class UserSearchOptions(BaseModel):
     project: str = ""
     issue_key: str = PydanticField(default="", alias="issueKey")
     max_results: int = PydanticField(default=50, alias="maxResults")
+
+
+class Comment(BaseModel):
+    """Issue comment."""
+
+    model_config = {"populate_by_name": True, "extra": "ignore"}
+
+    id: str
+    body: Any = ""  # str in v2, ADF dict in v3
+    author: Dict[str, Any] = PydanticField(default_factory=lambda: {"displayName": ""})
+    update_author: Dict[str, Any] = PydanticField(default_factory=lambda: {"displayName": ""}, alias="updateAuthor")
+    created: str = ""
+    updated: str = ""
+
+
+class CommentList(BaseModel):
+    """List of comments."""
+
+    comments: List[Comment] = PydanticField(default_factory=list)
+    total: int = 0
+    start_at: int = PydanticField(default=0, alias="startAt")
+    max_results: int = PydanticField(default=50, alias="maxResults")
+
+
+class Worklog(BaseModel):
+    """Issue worklog entry."""
+
+    model_config = {"populate_by_name": True, "extra": "ignore"}
+
+    id: str
+    comment: str = ""
+    time_spent: str = PydanticField(default="", alias="timeSpent")
+    time_spent_seconds: int = PydanticField(default=0, alias="timeSpentSeconds")
+    author: Dict[str, Any] = PydanticField(default_factory=lambda: {"displayName": ""})
+    started: str = ""
+    created: str = ""
+
+
+class WorklogList(BaseModel):
+    """List of worklogs."""
+
+    worklogs: List[Worklog] = PydanticField(default_factory=list)
+    total: int = 0
+    start_at: int = PydanticField(default=0, alias="startAt")
+    max_results: int = PydanticField(default=50, alias="maxResults")

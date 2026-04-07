@@ -3,6 +3,8 @@
 from jira_cli.pkg.jira.types import (
     AuthType,
     Board,
+    Comment,
+    CommentList,
     Epic,
     Field,
     Issue,
@@ -17,6 +19,8 @@ from jira_cli.pkg.jira.types import (
     Sprint,
     Transition,
     User,
+    Worklog,
+    WorklogList,
 )
 from jira_cli.pkg.jira.client import Client
 
@@ -27,6 +31,8 @@ __all__ = [
     "AuthType",
     "Board",
     "Client",
+    "Comment",
+    "CommentList",
     "Epic",
     "Field",
     "Issue",
@@ -41,4 +47,6 @@ __all__ = [
     "Sprint",
     "Transition",
     "User",
+    "Worklog",
+    "WorklogList",
 ]

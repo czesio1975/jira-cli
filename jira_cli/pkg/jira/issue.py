@@ -12,6 +12,10 @@ from jira_cli.pkg.jira.types import (
     Transition,
     IssueLinkType,
     Field,
+    Comment,
+    CommentList,
+    Worklog,
+    WorklogList,
     ASSIGNEE_NONE,
     ASSIGNEE_DEFAULT,
 )
@@ -187,6 +191,18 @@ class IssueOps:
             path += f"?adjustEstimate=new&newEstimate={new_estimate}"
 
         self.client.post_v2(path, body)
+
+    def get_comments(self, key: str, api_version: str = "v2") -> CommentList:
+        """Get all comments for an issue."""
+        path = f"/issue/{key}/comment"
+        response = self.client.get(path, api_version=api_version)
+        return CommentList.model_validate(response)
+
+    def get_worklogs(self, key: str, api_version: str = "v2") -> WorklogList:
+        """Get all worklogs for an issue."""
+        path = f"/issue/{key}/worklog"
+        response = self.client.get(path, api_version=api_version)
+        return WorklogList.model_validate(response)
 
 
 # Standalone functions for convenience

@@ -12,9 +12,17 @@ python -m venv .venv
 .venv/bin/pip install -e .
 ```
 
+### Optional: Keyring Support
+
+For secure credential storage in the system keyring:
+
+```bash
+.venv/bin/pip install -e ".[keyring]"
+```
+
 ## Configuration
 
-The CLI reads configuration from `~/.jira/.config.yml`. Run the interactive setup or create the file manually.
+The CLI reads configuration from `~/.jira/.config.yml` (or `%USERPROFILE%\.jira\.config.yml` on Windows). Run the interactive setup or create the file manually.
 
 ### Interactive Setup
 
@@ -22,29 +30,52 @@ The CLI reads configuration from `~/.jira/.config.yml`. Run the interactive setu
 jira init
 ```
 
-### Manual Configuration
+### Configuration File
 
 ```yaml
 # ~/.jira/.config.yml
-server: https://jira.example.com
-login: your-username
-api_token: your-token
-auth_type: basic          # basic, bearer, or mtls
-installation: Local       # Cloud or Local
+# Jira server URL
+server: https://your-company.atlassian.net
+
+# Login identifier (email for Cloud, username for Server/Data Center)
+login: your-email@example.com
+
+# API token or password (optional - can use env var, keyring, or netrc instead)
+api_token: your-api-token-here
+
+# Authentication type: basic, bearer, or mtls
+#   basic  - Jira Server/Data Center with username + token/password
+#   bearer - Jira Cloud with personal access token (PAT)
+#   mtls   - Mutual TLS with client certificates
+auth_type: basic
+
+# Installation type: Cloud or Local
+#   Cloud - Jira Cloud (uses API v3, ADF format)
+#   Local - Jira Server/Data Center (uses API v2, plain text)
+installation: Cloud
+
+# Default project key (can be overridden with -p flag)
 project:
   key: MYPROJECT
+
+# Skip TLS certificate verification (for self-signed certs)
+# insecure: false
+
+# mTLS configuration (only when auth_type: mtls)
+# mtls:
+#   ca_cert: /path/to/ca.pem
+#   client_cert: /path/to/client.pem
+#   client_key: /path/to/client.key
 ```
 
-### Authentication
+### Authentication Methods
 
 The tool looks for credentials in this order:
 
 1. `JIRA_API_TOKEN` environment variable
 2. `api_token` field in config file
-3. System keyring
-4. `~/.netrc` file
-
-Supported authentication types:
+3. System keyring (requires `pip install -e ".[keyring]"`)
+4. `~/.netrc` file (`~/_netrc` on Windows)
 
 | Type | Use Case |
 |------|----------|
@@ -52,15 +83,14 @@ Supported authentication types:
 | `bearer` | Jira Cloud with personal access token |
 | `mtls` | Mutual TLS with client certificates |
 
-#### mTLS Configuration
+### Configuration Locations
 
-```yaml
-auth_type: mtls
-mtls:
-  ca_cert: /path/to/ca.pem
-  client_cert: /path/to/client.pem
-  client_key: /path/to/client.key
-```
+| Platform | Default Config Path |
+|----------|---------------------|
+| Linux/macOS | `~/.jira/.config.yml` |
+| Windows | `%USERPROFILE%\.jira\.config.yml` |
+
+Override with `-c` flag or `JIRA_CONFIG_FILE` environment variable.
 
 ### Multiple Projects
 
